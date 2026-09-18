@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد السيرفرات | Discord Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1f22;
+            color: #f2f3f5;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2b2d31;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-info img { width: 45px; height: 45px; border-radius: 50%; }
+        .btn {
+            background-color: #5865F2;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #4752C4; }
+        .btn-logout { background-color: #da373c; }
+        .btn-logout:hover { background-color: #a12828; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .guild-card {
+            background-color: #2b2d31;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .guild-card:hover { transform: translateY(-5px); }
+        .guild-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+            background-color: #313338;
+            object-fit: cover;
+        }
+        .guild-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .badge-owner { background: #f0b232; color: #000; font-weight: bold; }
+        .badge-admin { background: #23a55a; color: #fff; }
+        .badge-member { background: #80848e; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>🤖 لوحة تحكم سيرفرات Discord</h2>
+        <div id="auth-container">
+            <a href="/auth/discord" class="btn">تسجيل الدخول عبر Discord</a>
+        </div>
+    </header>
+
+    <div id="dashboard-content" style="display: none;">
+        <h3 style="margin-bottom: 15px;">السيرفرات التي تنتمي إليها:</h3>
+        <div class="grid" id="guilds-grid"></div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/user');
+                const data = await res.json();
+
+                if (data.authenticated) {
+                    // إظهار معلومات المستخدم
+                    document.getElementById('auth-container').innerHTML = `
+                        <div class="user-info">
+                            <img src="${data.user.avatar}" alt="Avatar">
+                            <span><b>${data.user.username}</b></span>
+                            <a href="/logout" class="btn btn-logout">تسجيل الخروج</a>
+                        </div>
+                    `;
+
+                    document.getElementById('dashboard-content').style.display = 'block';
+
+                    // عرض السيرفرات
+                    const guildsGrid = document.getElementById('guilds-grid');
+                    guildsGrid.innerHTML = '';
+
+                    data.guilds.forEach(guild => {
+                        const iconUrl = guild.icon 
+                            ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
+                            : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+                        let badgeHTML = '<span class="badge badge-member">عضو</span>';
+                        if (guild.owner) {
+                            badgeHTML = '<span class="badge badge-owner">👑 مالك</span>';
+                        } else if ((guild.permissions & 0x8) === 0x8) { // صلاحية Administrator
+                            badgeHTML = '<span class="badge badge-admin">مسؤول</span>';
+                        }
+
+                        guildsGrid.innerHTML += `
+                            <div class="guild-card">
+                                <img class="guild-icon" src="${iconUrl}" alt="${guild.name}">
+                                <div class="guild-name">${guild.name}</div>
+                                ${badgeHTML}
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("خطأ أثناء تحميل البيانات:", err);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
