@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -6,12 +7,10 @@ const path = require('path');
 
 const app = express();
 
-// 🔑 ضع معلومات البوت وتطبيق Discord الخاصة بك هنا
-const CLIENT_ID = 'ضع_CLIENT_ID_هنا';
-const CLIENT_SECRET = 'ضع_CLIENT_SECRET_هنا';
-const REDIRECT_URI = 'http://localhost:3000/auth/discord/callback';
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/discord/callback';
 
-// إعداد خيارات تسجيل الدخول عبر ديسكورد
 passport.use(new DiscordStrategy({
     clientID: CLIENT_ID,
     clientSecret: CLIENT_SECRET,
@@ -24,20 +23,16 @@ passport.use(new DiscordStrategy({
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-// إعداد الجلسات (Sessions)
 app.use(session({
-    secret: 'secret_key_discord_bot_dashboard',
+    secret: process.env.SESSION_SECRET || 'secret_key',
     resave: false,
     saveUninitialized: false
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-// إتاحة الملفات الإستاتيكية مثل index.html
 app.use(express.static(path.join(__dirname, 'public')));
 
-// مسارات تسجيل الدخول عبر ديسكورد
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get('/auth/discord/callback', passport.authenticate('discord', {
@@ -46,13 +41,11 @@ app.get('/auth/discord/callback', passport.authenticate('discord', {
     res.redirect('/');
 });
 
-// API لجلب بيانات المستخدم والسيرفرات
 app.get('/api/user', (req, res) => {
     if (!req.isAuthenticated()) {
         return res.status(401).json({ authenticated: false });
     }
     
-    // إرسال بيانات المستخدم والسيرفرات
     res.json({
         authenticated: true,
         user: {
@@ -64,7 +57,6 @@ app.get('/api/user', (req, res) => {
     });
 });
 
-// تسجيل الخروج
 app.get('/logout', (req, res) => {
     req.logout(() => {
         res.redirect('/');
@@ -73,5 +65,5 @@ app.get('/logout', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🌐 يعمل الموقع والداشبورد الآن على: http://localhost:${PORT}`);
+    console.log(`🌐 يعمل الموقع على: http://localhost:${PORT}`);
 });
